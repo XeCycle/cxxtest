@@ -1,0 +1,7 @@
+#!/bin/bash
+
+for cc in a b; do
+  c++ $cc.cc -c -o $cc.o
+done
+
+cc main.c a.o b.o -lstdc++ -o main
