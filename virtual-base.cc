@@ -1,3 +1,5 @@
+#include <iostream>
+
 struct A {
   int a;
 };
@@ -17,14 +19,22 @@ struct D : B, C {
 int main()
 {
 
-  D d {};
+  union {
+    D d;
+    char mem[sizeof(D)];
+  } u {};
 
-  d.a = 1;
-  d.b = 2;
-  d.c = 3;
-  d.d = 4;
+  u.d.b = 1;
+  u.d.c = 2;
+  u.d.d = 3;
 
-  static_cast<C&>(d).c = 42;
+  u.d.a = 255;
 
-  return d.c;
+  hex(std::cout);
+
+  for (char byte : u.mem)
+    std::cout << (unsigned short)(unsigned char)byte << ' ';
+  std::cout << '\n';
+
+  return 0;
 }
