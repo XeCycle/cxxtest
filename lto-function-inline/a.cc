@@ -1,6 +1,6 @@
-#include <functional>
+#include "vfunction.hh"
 
-int b(std::function<int()>);
+int b(function<int()>&&);
 
 int a()
 {
