@@ -24,6 +24,9 @@ template <template <class> class... Child>
 struct collected {
 private:
   struct store_t : Child<store_t>... {
+    store_t(Child<store_t> const&... c)
+      : Child<store_t>(c)...
+    {}
     template <template <class> class C>
     C<store_t>& get_sibling() &
     {
@@ -32,6 +35,9 @@ private:
   };
   store_t store;
 public:
+  explicit collected(Child<store_t> const&... c)
+    : store(c...)
+  {}
   template <template <class> class C>
   C<store_t>& get() &
   {
@@ -42,7 +48,7 @@ public:
 int main()
 {
 
-  collected<A, B> pack{};
+  collected<A, B> pack{ {}, {42} };
 
   static_assert(sizeof pack == sizeof(int), "EBO craziness");
 
