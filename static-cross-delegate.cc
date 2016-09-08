@@ -1,16 +1,18 @@
+#include <iostream>
+
 template <class> struct A;
 template <class> struct B;
 
 template <class Provider>
-struct A : Provider {
+struct A {
   int operator()()
   {
-    return 1 + this->template get_sibling<B>()();
+    return 1 + static_cast<Provider*>(this)->template get_sibling<B>()();
   }
 };
 
 template <class Provider>
-struct B : Provider {
+struct B {
   int x;
   int operator()() const
   {
@@ -18,25 +20,22 @@ struct B : Provider {
   }
 };
 
-struct provider_base {
-protected:
-  template <template <class> class Child>
-  Child<provider_base>& get_sibling() &
-  {
-    return *static_cast<Child<provider_base>*>(this);
-  }
-};
-
 template <template <class> class... Child>
-struct collected : Child<provider_base>... {
+struct collected {
 private:
-  struct store_t : Child<provider_base>... {};
+  struct store_t : Child<store_t>... {
+    template <template <class> class C>
+    C<store_t>& get_sibling() &
+    {
+      return *static_cast<C<store_t>*>(this);
+    }
+  };
   store_t store;
 public:
   template <template <class> class C>
-  C<provider_base>& get() &
+  C<store_t>& get() &
   {
-    return static_cast<C<provider_base>&>(store);
+    return static_cast<C<store_t>&>(store);
   }
 };
 
@@ -44,6 +43,8 @@ int main()
 {
 
   collected<A, B> pack{};
+
+  static_assert(sizeof pack == sizeof(int), "EBO craziness");
 
   return pack.get<A>()();
 }
