@@ -1,21 +1,20 @@
 #include <cstddef>
 #include <x86intrin.h>
 
-__attribute__((optimize("unroll-loops")))
 const float* find_min_pos(const float* first, const float* last)
 {
-  auto incr = _mm256_set1_epi32(8);
-  auto idx = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
   auto min = _mm256_load_ps(first);
-  auto minidx = idx;
-  for (auto addr = first + 8;
-       addr < last;
-       addr += 8, idx = _mm256_add_epi32(idx, incr)) {
-    auto v = _mm256_load_ps(addr);
-    min = _mm256_min_ps(min, v);
+  auto minidx = _mm256_setzero_si256();
+  for (int32_t i=8; i < last-first; i+=8) {
+    auto idxbase = _mm256_set1_epi32(i);
+    auto v = _mm256_load_ps(first+i);
     auto cmp = _mm256_cmp_ps(v, min, _CMP_LT_OQ);
-    minidx = _mm256_blendv_epi8(minidx, idx, _mm256_castps_si256(cmp));
+    min = _mm256_min_ps(min, v);
+    minidx = _mm256_blendv_epi8(minidx, idxbase, _mm256_castps_si256(cmp));
   }
+
+  auto offsets = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+  minidx = _mm256_add_epi32(minidx, offsets);
 
   {
     // 0v1, 2v3 in each lane
@@ -33,8 +32,8 @@ const float* find_min_pos(const float* first, const float* last)
     minidx = _mm256_blendv_epi8(minidx, ishifted2,
                                 _mm256_castps_si256(cmp_0v2));
     // compare high and low part
-    auto vhigh = _mm256_unpackhi_ps(min, min);
-    auto ihigh = _mm256_unpackhi_epi32(minidx, minidx);
+    auto vhigh = _mm256_permute2f128_ps(min, min, 0b10000101);
+    auto ihigh = _mm256_permute2f128_si256(minidx, minidx, 0b10000101);
     auto cmp_hl = _mm256_cmp_ps(vhigh, min, _CMP_LT_OQ);
     // no need to store min now
     minidx = _mm256_blendv_epi8(minidx, ihigh, _mm256_castps_si256(cmp_hl));
