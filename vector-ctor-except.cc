@@ -5,6 +5,7 @@
 struct throwing_copy {
   throwing_copy() = default;
   static size_t counter;
+  throwing_copy(throwing_copy&&) noexcept = default;
   throwing_copy(const throwing_copy&)
   {
     ++counter;
@@ -13,7 +14,7 @@ struct throwing_copy {
   }
   ~throwing_copy()
   {
-    fprintf(stderr, "destroying\n");
+    fprintf(stderr, "destroying %p\n", this);
     fflush(stderr);
   }
 };
@@ -60,7 +61,10 @@ int main()
   throwing_copy src[10];
   using iter = ptr_input_iterator<throwing_copy>;
 
-  std::vector<throwing_copy> vec(iter{src}, iter{src+10});
+  try {
+    std::vector<throwing_copy> vec(iter{src}, iter{src+10});
+  } catch(int) {
+  }
 
   return 0;
 }
