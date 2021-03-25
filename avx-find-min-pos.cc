@@ -4,6 +4,7 @@
 #include <algorithm>
 
 const float* find_min_pos(const float* first, const float* last);
+const float* find_min_pos_sse(const float* first, const float* last);
 const float* find_min_pos_scalar(const float* first, const float* last);
 
 int main()
@@ -19,12 +20,13 @@ int main()
 
   float* arr = (float*)aligned_alloc(32, s16mb);
 
-  for (size_t i=0; i<3000; ++i)
+  for (size_t i=0; i<40; ++i)
   {
     std::generate(arr, arr+s, [&] { return dist(gen); });
-    auto pvector = find_min_pos(arr, arr+s);
+    // auto pvector = find_min_pos(arr, arr+s);
+    auto psse = find_min_pos_sse(arr, arr+s);
     auto pscalar = find_min_pos_scalar(arr, arr+s);
-    if (*pscalar != *pvector)
+    if (*pscalar != *psse)
       abort();
   }
 

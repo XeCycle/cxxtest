@@ -1,6 +1,35 @@
 #include <cstddef>
 #include <x86intrin.h>
 
+const float* find_min_pos_sse(const float* first, const float* last)
+{
+  union {
+    __m128 m;
+    float f[4];
+  } min { _mm_loadu_ps(first) };
+  union {
+    __m128i m;
+    int i[4];
+  } minidx { _mm_setzero_si128() };
+  for (int32_t i=4; i < last-first; i+=4) {
+    auto idxbase = _mm_set1_epi32(i);
+    auto v = _mm_loadu_ps(first+i);
+    auto cmp = _mm_cmplt_ps(v, min.m);
+    min.m = _mm_min_ps(min.m, v);
+    minidx.m = _mm_blendv_epi8(minidx.m, idxbase, _mm_castps_si128(cmp));
+  }
+  auto offsets = _mm_setr_epi32(0, 1, 2, 3);
+  minidx.m = _mm_add_epi32(minidx.m, offsets);
+
+  size_t mini = 0;
+  if (min.f[1] < min.f[mini]) mini = 1;
+  if (min.f[2] < min.f[mini]) mini = 2;
+  if (min.f[3] < min.f[mini]) mini = 3;
+  return first + minidx.i[mini];
+}
+
+#if 0
+
 const float* find_min_pos(const float* first, const float* last)
 {
   auto min = _mm256_load_ps(first);
@@ -40,6 +69,8 @@ const float* find_min_pos(const float* first, const float* last)
     return first + _mm256_extract_epi32(minidx, 0);
   }
 }
+
+#endif
 
 const float* find_min_pos_scalar(const float* first, const float* last)
 {
